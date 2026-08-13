@@ -40,8 +40,8 @@ final class DeviceConnection {
 
     // MARK: Connect / disconnect
 
-    /// Establish the loopback tunnel and RSD handshake.
-    func connect(deviceIP: String, pairingFilePath: String, hostname: String = "SideInstaller") throws {
+    /// Establish the loopback tunnel and RSD handshake using IPv6 for iOS 18 compatibility.
+    func connect(deviceIP: String = "::1", pairingFilePath: String, hostname: String = "SideInstaller") throws {
         var pf: OpaquePointer?
         try pairingFilePath.withCString { p in
             try check(rp_pairing_file_read(p, &pf), "failed to read pairing file at \(pairingFilePath)")
@@ -49,11 +49,14 @@ final class DeviceConnection {
         guard let pairingFile = pf else { throw fail("pairing file handle was null") }
         defer { rp_pairing_file_free(pairingFile) }
 
-        var addr = sockaddr_in()
-        addr.sin_family = sa_family_t(AF_INET)
-        addr.sin_port = Self.rsdPort.bigEndian
-        guard deviceIP.withCString({ inet_pton(AF_INET, $0, &addr.sin_addr) }) == 1 else {
-            throw fail("invalid device IP: \(deviceIP)")
+        // Configure sockaddr_in6 for IPv6 (iOS 18 loopback requirement)
+        var addr = sockaddr_in6()
+        addr.sin6_family = sa_family_t(AF_INET6)
+        addr.sin6_port = Self.rsdPort.bigEndian
+        
+        // Convert IPv6 string address (e.g. "::1") to in6_addr binary form
+        guard deviceIP.withCString({ inet_pton(AF_INET6, $0, &addr.sin6_addr) }) == 1 else {
+            throw fail("invalid device IPv6 address: \(deviceIP)")
         }
 
         var newAdapter: OpaquePointer?
@@ -63,13 +66,13 @@ final class DeviceConnection {
                 hostname.withCString { host in
                     // A nil pin_callback pair-verifies with the existing file.
                     tunnel_create_rppairing(
-                        sa, socklen_t(MemoryLayout<sockaddr_in>.stride),
+                        sa, socklen_t(MemoryLayout<sockaddr_in6>.stride),
                         host, pairingFile, nil, nil,
                         &newAdapter, &newHandshake)
                 }
             }
         }
-        try check(err, "tunnel_create_rppairing failed (is a loopback VPN connected, Wi-Fi on, device IP \(deviceIP)?)")
+        try check(err, "tunnel_create_rppairing failed (is a loopback VPN connected with ::1/128, Wi-Fi on, device IP \(deviceIP)?)")
         guard newAdapter != nil, newHandshake != nil else {
             throw fail("tunnel created without valid handles")
         }
