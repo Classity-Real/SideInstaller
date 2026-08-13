@@ -205,14 +205,6 @@ final class PairingController {
     }
 }
 
-func sendPairingRequest() {
-    let task = URLSession.shared.dataTask(with: request) { data, response, error in
-        // handle response
-    }
-    
-    task.resume() // Must be inside the function/method
-}
-
 
 // MARK: - C callbacks
 
