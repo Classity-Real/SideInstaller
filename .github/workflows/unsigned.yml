@@ -13,6 +13,11 @@ on:
   pull_request:
     branches: [ "main", "master" ]
 
+# Automatically cancels any previous running build when you push or trigger a new one
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: macos-14
@@ -21,29 +26,41 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Set up Xcode 16.1.0 (Fixed version string)
+      # Set up Xcode 16.1.0
       - name: Set up Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: '16.1.0'
 
-      # Install both physical device and simulator targets for Rust
+      # Install Rust targets
       - name: Set up Rust
         if: ${{ inputs.build_rust == true || github.event_name != 'workflow_dispatch' }}
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-apple-ios, aarch64-apple-ios-sim
 
-      # Build Rust core dependencies if enabled and build-rust.sh exists
+      # Build Rust core and ensure SideInstallerFFI.xcframework is in root
       - name: Build Rust Core
         if: ${{ inputs.build_rust == true || github.event_name != 'workflow_dispatch' }}
         run: |
           export DEVELOPER_DIR="/Applications/Xcode_16.1.app/Contents/Developer"
+          
           if [ -f "build-rust.sh" ]; then
             chmod +x build-rust.sh
             ./build-rust.sh
-          else
-            echo "No build-rust.sh found, skipping script execution."
+          fi
+
+          # Search and copy SideInstallerFFI.xcframework to root if generated elsewhere
+          if [ ! -d "SideInstallerFFI.xcframework" ]; then
+            echo "Searching for built SideInstallerFFI.xcframework..."
+            FOUND_FRAMEWORK=$(find . -name "SideInstallerFFI.xcframework" -type d | head -n 1)
+            if [ -n "$FOUND_FRAMEWORK" ]; then
+              echo "Moving $FOUND_FRAMEWORK to project root..."
+              cp -R "$FOUND_FRAMEWORK" ./
+            else
+              echo "ERROR: SideInstallerFFI.xcframework was not generated!"
+              exit 1
+            fi
           fi
 
       # Generate Xcode project if using XcodeGen
