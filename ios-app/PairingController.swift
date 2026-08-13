@@ -11,7 +11,7 @@ final class PairingController {
 
     private let hostName = "SideInstaller"
     private let hostModel = "Mac17,7"   // device sees a Mac-like pairing host
-    private let bindAddress = "0.0.0.0"
+    private let bindAddress = "127.0.0.1"
 
     private var netService: NetService?
     private let localNetwork = LocalNetworkAuthorization()
