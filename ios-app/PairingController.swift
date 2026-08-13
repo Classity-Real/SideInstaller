@@ -205,9 +205,13 @@ final class PairingController {
     }
 }
 
-// Force-trigger a socket connection to localhost to ping the daemon
-let task = URLSession.shared.dataTask(with: URL(string: "http://127.0.0.1:49155")!) { _, _, _ in }
-task.resume()
+func sendPairingRequest() {
+    let task = URLSession.shared.dataTask(with: request) { data, response, error in
+        // handle response
+    }
+    
+    task.resume() // Must be inside the function/method
+}
 
 
 // MARK: - C callbacks
