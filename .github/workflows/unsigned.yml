@@ -15,20 +15,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # FIX: Correctly select Xcode and export DEVELOPER_DIR for xcrun/rustc
       - name: Set up Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: '15.4'
 
+      # FIX: Installed both physical device and simulator targets for Rust
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-apple-ios
+          targets: aarch64-apple-ios, aarch64-apple-ios-sim
 
       - name: Build Rust Core (Optional)
         run: |
-          # Explicitly set DEVELOPER_DIR to prevent xcrun path errors in cargo
           export DEVELOPER_DIR="/Applications/Xcode_15.4.app/Contents/Developer"
           if [ -f "build-rust.sh" ]; then
             chmod +x build-rust.sh
@@ -67,7 +66,7 @@ jobs:
 
           echo "Found built app at: $APP_PATH"
 
-          # 3. Package into standard IPA format (Payload/YourApp.app)
+          # 3. Package into standard IPA format
           mkdir -p Payload
           cp -R "$APP_PATH" Payload/
           zip -r SideInstaller-iOS18.ipa Payload
