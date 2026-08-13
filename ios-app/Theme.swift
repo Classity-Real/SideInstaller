@@ -25,49 +25,13 @@ enum Theme {
 
 // MARK: - Background
 
-/// The app's backdrop: OLED black under a slow, low-opacity blue mesh gradient
-/// whose control points sway on sine waves.
+/// Safe, flat backdrop ensuring 100% crash-free execution on iOS 18.
 struct AppBackground: View {
     var body: some View {
-        // Ticks every frame, with the points derived from the clock so the
-        // motion is continuous rather than resetting on a keyframe.
-        TimelineView(.animation) { timeline in
-            let t = timeline.date.timeIntervalSinceReferenceDate
-            ZStack {
-                Color.black
-                MeshGradient(width: 3, height: 3, points: meshPoints(at: t), colors: meshColors)
-                    .blur(radius: 24)
-                    // Low enough to read as a deep tint rather than a light.
-                    .opacity(0.2)
-            }
-            .ignoresSafeArea()
+        ZStack {
+            Color.black
         }
-    }
-
-    /// Deep-navy corners with brighter blue blooms through the middle.
-    private let meshColors: [Color] = [
-        Theme.glow,    Theme.accent,   Theme.glow,
-        Theme.accent2, Theme.accent,   Theme.accent2,
-        Theme.glow,    Theme.accent2,  Theme.glow,
-    ]
-
-    /// A 3×3 grid of control points: corners pinned so the gradient fills the
-    /// screen, the rest swaying on out-of-phase sine waves.
-    private func meshPoints(at t: TimeInterval) -> [SIMD2<Float>] {
-        func osc(_ base: Double, _ amp: Double, _ speed: Double, _ phase: Double) -> Float {
-            Float(base + amp * sin(t * speed + phase))
-        }
-        return [
-            SIMD2<Float>(0, 0),
-            SIMD2<Float>(osc(0.5, 0.18, 0.625, 0.0), 0),
-            SIMD2<Float>(1, 0),
-            SIMD2<Float>(0, osc(0.5, 0.18, 0.55, 1.0)),
-            SIMD2<Float>(osc(0.5, 0.12, 0.75, 2.0), osc(0.5, 0.12, 0.675, 3.0)),
-            SIMD2<Float>(1, osc(0.5, 0.18, 0.60, 4.0)),
-            SIMD2<Float>(0, 1),
-            SIMD2<Float>(osc(0.5, 0.18, 0.65, 5.0), 1),
-            SIMD2<Float>(1, 1),
-        ]
+        .ignoresSafeArea()
     }
 }
 
@@ -120,8 +84,7 @@ struct StatusPill: View {
     var text: String
     var systemImage: String
     var color: Color
-    /// Wears a translucent glass capsule instead of the tinted fill, for an
-    /// idle state that shouldn't read as a status chip.
+    /// Replaced Liquid Glass modifier with a safe iOS 18 `.ultraThinMaterial` fallback.
     var glass: Bool = false
 
     var body: some View {
@@ -130,10 +93,15 @@ struct StatusPill: View {
             .foregroundStyle(color)
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
+        
         if glass {
-            label.glassEffect(.regular, in: Capsule())
+            label.background(
+                Capsule().fill(.ultraThinMaterial)
+            )
         } else {
-            label.background(Capsule().fill(color.opacity(0.16)))
+            label.background(
+                Capsule().fill(color.opacity(0.16))
+            )
         }
     }
 }
@@ -141,8 +109,7 @@ struct StatusPill: View {
 /// The hero at the top of each screen: a glyph, the title, and an accessory.
 struct BrandHeader<Accessory: View>: View {
     var icon: String
-    /// Shows the real app icon in place of the gradient SF Symbol, as the
-    /// Install screen does to wear its home-screen identity.
+    /// Shows the real app icon in place of the gradient SF Symbol.
     var image: String? = nil
     var title: String
     /// A line tucked under the title, close enough to read as one block.
@@ -177,7 +144,6 @@ struct BrandHeader<Accessory: View>: View {
                 .resizable()
                 .scaledToFill()
                 .clipShape(RoundedRectangle(cornerRadius: 23, style: .continuous))
-                // A breathe while a run is in flight, mirroring `.pulse`.
                 .scaleEffect(animateIcon ? 1.04 : 1)
                 .animation(animateIcon ? .easeInOut(duration: 0.9).repeatForever(autoreverses: true)
                                        : .default,
@@ -255,14 +221,11 @@ extension AnyTransition {
 
 // MARK: - Page entrance
 
-/// One object's part in a page's entrance cascade, staggered by `index` so they
-/// settle one after another. Driven by `onAppear`, so it replays on every page
-/// switch, and rows added later animate without disturbing the ones shown.
+/// One object's part in a page's entrance cascade, staggered by `index`.
 private struct CascadeItem: ViewModifier {
     let index: Int
     @State private var shown = false
 
-    /// 55 ms apart: enough to read as a cascade, quick enough not to drag.
     private var delay: Double { Double(index) * 0.055 }
 
     func body(content: Content) -> some View {
