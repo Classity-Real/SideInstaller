@@ -104,7 +104,7 @@ final class Engine: ObservableObject {
     @Published var wifiStatus: String = "unknown"
 
     /// Lowest iOS the install pipeline supports.
-    static let minimumOSMajorVersion = 27
+    static let minimumOSMajorVersion = 17
     /// The same number as text, for UI copy.
     static var minimumOSText: String { "\(minimumOSMajorVersion)" }
 
