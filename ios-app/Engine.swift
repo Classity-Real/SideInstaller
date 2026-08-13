@@ -87,8 +87,8 @@ final class Engine: ObservableObject {
     @Published var anisetteURL: String = AnisetteServer.fallback.address
     /// Servers for the picker; a bundled snapshot until the live list loads.
     @Published private(set) var anisetteServers: [AnisetteServer] = AnisetteServer.bundledDefaults
-    // The loopback VPN's device-side IP; configurable in Advanced.
-    @Published var deviceIP: String = "10.7.0.1"
+    // The loopback VPN's device-side IP; configurable in Advanced (Default: IPv6 ::1 for iOS 18).
+    @Published var deviceIP: String = "::1"
     // Which build to install (SideStore, or LiveContainer + SideStore).
     @Published var installSource: InstallSource = .sideStore
     // Which release track to pull that build from (stable or nightly).
@@ -375,7 +375,7 @@ final class Engine: ObservableObject {
         // A tunnel pointed at this iPhone's own address can never connect.
         if NetworkStatus.isOwnAddress(deviceIP) {
             setGuide(Guides.deviceIPMismatch)
-            log("⛔️ Device IP \(deviceIP) is an address this iPhone already holds — that's the tunnel's own end, not the one to connect to. Check Settings › Advanced › Device IP (the default is 10.7.0.1).")
+            log("⛔️ Device IP \(deviceIP) is an address this iPhone already holds — that's the tunnel's own end, not the one to connect to. Check Settings › Advanced › Device IP (the default is ::1).")
             return
         }
         resetRun()
@@ -1480,8 +1480,8 @@ enum Guides {
             systemImage: "arrow.triangle.branch",
             steps: [
                 L("The address in Settings › Advanced › Device IP is one this iPhone already holds, so there's nothing at the other end to connect to."),
-                L("Set it back to 10.7.0.1, the default. In LocalDevVPN that's the value under Settings › Device IP — not the address on its main screen, which is the tunnel's own end."),
-                L("If you changed LocalDevVPN's addresses, put its Device IP here, and make sure its Tunnel IP and subnet mask cover it."),
+                L("Set it back to ::1, the default for iOS 18 loopback VPNs."),
+                L("If you changed LocalDevVPN's addresses, make sure its Tunnel IP covers IPv6 (::1/128)."),
             ],
             actionLabel: nil, actionURLString: nil)
     }
