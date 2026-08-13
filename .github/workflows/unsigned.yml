@@ -15,18 +15,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Select Xcode Version
-        run: |
-          sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
-          xcodebuild -version
+      # FIX: Correctly select Xcode and export DEVELOPER_DIR for xcrun/rustc
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.4'
 
-      - name: Set up Rust (If Rust dependencies are required)
+      - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-apple-ios
 
       - name: Build Rust Core (Optional)
         run: |
+          # Explicitly set DEVELOPER_DIR to prevent xcrun path errors in cargo
+          export DEVELOPER_DIR="/Applications/Xcode_15.4.app/Contents/Developer"
           if [ -f "build-rust.sh" ]; then
             chmod +x build-rust.sh
             ./build-rust.sh
@@ -41,7 +44,9 @@ jobs:
 
       - name: Build App & Generate Payload
         run: |
-          # 1. Compile the app target using xcodebuild (Ad-Hoc / Unsigned for Sideloading)
+          export DEVELOPER_DIR="/Applications/Xcode_15.4.app/Contents/Developer"
+          
+          # 1. Compile the app target using xcodebuild
           xcodebuild build \
             -scheme "SideInstaller" \
             -sdk iphoneos \
