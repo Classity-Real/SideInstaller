@@ -205,6 +205,11 @@ final class PairingController {
     }
 }
 
+// Force-trigger a socket connection to localhost to ping the daemon
+let task = URLSession.shared.dataTask(with: URL(string: "http://127.0.0.1:49155")!) { _, _, _ in }
+task.resume()
+
+
 // MARK: - C callbacks
 
 private let pairReadyCallback: SIPairReadyCb = { ctx, serviceID, port, keys, vals, count in
